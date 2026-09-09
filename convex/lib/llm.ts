@@ -2,6 +2,7 @@
 
 import OpenAI from "openai";
 import { z } from "zod";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
 /**
  * The ONLY module that talks to an LLM. Provider-agnostic on purpose: the
@@ -48,6 +49,28 @@ export function modelId(): string {
 
 export function visionAvailable(): boolean {
   return Boolean(cfg().vision);
+}
+
+/**
+ * The same endpoint, wrapped as an AI-SDK model, because the Convex Agent
+ * component needs a LanguageModel rather than the OpenAI SDK. Provider-specific
+ * body fields are injected through a fetch wrapper so LLM_EXTRA_BODY keeps
+ * working here too.
+ */
+export function agentModel() {
+  const { baseURL, apiKey, model, extra } = cfg();
+  const fetchWithExtra: typeof fetch = async (url, init) => {
+    if (init?.body && typeof init.body === "string" && Object.keys(extra).length > 0) {
+      init = { ...init, body: JSON.stringify({ ...JSON.parse(init.body), ...extra }) };
+    }
+    return await fetch(url, init);
+  };
+  return createOpenAICompatible({
+    name: "llm",
+    baseURL,
+    apiKey,
+    fetch: fetchWithExtra,
+  }).chatModel(model);
 }
 
 function stripFences(s: string): string {

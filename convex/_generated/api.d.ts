@@ -9,6 +9,7 @@
  */
 
 import type * as analyze from "../analyze.js";
+import type * as ask from "../ask.js";
 import type * as auth from "../auth.js";
 import type * as cases from "../cases.js";
 import type * as crawlCache from "../crawlCache.js";
@@ -40,6 +41,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   analyze: typeof analyze;
+  ask: typeof ask;
   auth: typeof auth;
   cases: typeof cases;
   crawlCache: typeof crawlCache;

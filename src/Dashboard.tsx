@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { A, CopyButton, Logo, RiskRing, Tile, VerdictPill, duration, timeAgo, useNow, verdictUi } from "./ui";
@@ -215,6 +215,9 @@ function DashboardBody({
         </div>
 
         <GuardianStrip shield={shield} />
+        <div className="mt-4">
+          <AskBox shieldId={shield._id} />
+        </div>
       </main>
     </div>
   );
@@ -609,6 +612,100 @@ function PasteBox({ shieldId }: { shieldId: Id<"shields"> }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const SUGGESTED = [
+  "Has anyone pretended to be her bank before?",
+  "What do these emails usually want from her?",
+  "Is anything still waiting for a phone call?",
+];
+
+/**
+ * Guardian Q&A over the family's own history, on the Convex Agent component:
+ * the thread and every message are stored in Convex, so the conversation
+ * survives a reload and follows the guardian between devices.
+ */
+function AskBox({ shieldId }: { shieldId: Id<"shields"> }) {
+  const ask = useAction(api.ask.ask);
+  const [threadId, setThreadId] = useState<string | undefined>(undefined);
+  const [turns, setTurns] = useState<{ q: string; a: string }[]>([]);
+  const [question, setQuestion] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function send(q: string) {
+    if (!q.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    setQuestion("");
+    try {
+      const res = await ask({ shieldId, question: q, threadId });
+      setThreadId(res.threadId);
+      setTurns((t) => [...t, { q, a: res.answer }]);
+    } catch (err) {
+      setError(String((err as Error).message ?? err).replace(/^.*Error:\s*/, ""));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">
+        Ask about her history
+      </h2>
+      <p className="mt-1 text-xs text-ink-500">
+        Answers come only from this family's own cases. If the history does not say, it says so.
+      </p>
+
+      <div className="mt-3 space-y-3">
+        {turns.map((t, i) => (
+          <div key={i} className="animate-rise">
+            <div className="text-sm font-semibold text-ink-900">{t.q}</div>
+            <p className="mt-1 text-sm leading-relaxed text-ink-700">{t.a}</p>
+          </div>
+        ))}
+        {busy ? <div className="skeleton h-10" /> : null}
+        {error ? <p className="text-xs text-scam-700">{error}</p> : null}
+      </div>
+
+      {turns.length === 0 && !busy ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {SUGGESTED.map((s) => (
+            <button
+              key={s}
+              onClick={() => void send(s)}
+              className="rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void send(question);
+        }}
+        className="mt-3 flex gap-2"
+      >
+        <input
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="Ask anything about her cases"
+          className="flex-1 rounded-lg border border-line bg-white px-3 py-2 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={busy}
+          className="rounded-lg bg-ink-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-ink-700 disabled:opacity-50"
+        >
+          Ask
+        </button>
+      </form>
     </div>
   );
 }
