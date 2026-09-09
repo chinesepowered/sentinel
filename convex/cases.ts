@@ -5,7 +5,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { caseStatus, extracted, verdict, verification } from "./schema";
-import { redactEmail } from "./lib/mailUtil";
+import { bareAddress, redactEmail } from "./lib/mailUtil";
 import { rateLimiter } from "./lib/limits";
 
 /**
@@ -246,7 +246,7 @@ export const intakeFromMail = internalMutation({
       receivedAt: mail.at,
       subject: (mail.subject || "(no subject)").slice(0, 200),
       // The forwarding parent's address is a routing key, never display data.
-      fromRedacted: redactEmail(mail.from),
+      fromRedacted: redactEmail(bareAddress(mail.from ?? "")),
       bodyExcerpt: (mail.fullText || mail.extractedText || "").slice(0, 4000),
       status: "analyzing",
     });

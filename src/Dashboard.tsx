@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
@@ -40,12 +40,18 @@ function DashboardBody({
   const crawl = useQuery(api.crawlCache.status);
   const [selected, setSelected] = useState<Id<"cases"> | null>(null);
 
-  // Follow the newest case automatically, so a forward arriving during a demo
-  // opens itself on screen.
+  // Follow the newest case: when an email lands while someone is watching, the
+  // case that just arrived opens itself. Anything the guardian selects by hand
+  // stays put until the next arrival.
+  const newestId = cases?.[0]?._id;
+  const lastNewest = useRef<Id<"cases"> | undefined>(undefined);
   useEffect(() => {
-    if (!cases || cases.length === 0) return;
-    setSelected((prev) => (prev && cases.some((c) => c._id === prev) ? prev : cases[0]._id));
-  }, [cases]);
+    if (!newestId) return;
+    if (lastNewest.current !== newestId) {
+      lastNewest.current = newestId;
+      setSelected(newestId);
+    }
+  }, [newestId]);
 
   const analyzing = cases?.some((c) => c.status === "analyzing") ?? false;
 
@@ -533,24 +539,25 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+const SAMPLE_SUBJECT = "Fwd: Is this real? A parcel is waiting for me";
 const SAMPLE = `---------- Forwarded message ----------
-From: Amazon Security <account-update@amazon-billing-verify.com>
-Subject: Your Amazon Prime membership could not be renewed
+From: Canada Post Delivery <notice@canadapost-parcel-redelivery.com>
+Subject: Your parcel is being held - unpaid delivery fee
 
 Dear customer,
 
-We could not process the payment for your Amazon Prime membership. Your account will be suspended within 24 hours unless you update your payment details.
+We attempted to deliver your parcel today but a customs fee of $2.99 remains unpaid. Your parcel will be returned to the sender within 48 hours unless the fee is paid.
 
-Update now: http://amazon-billing-verify.com/prime/update
+Pay the fee and reschedule delivery: http://canadapost-parcel-redelivery.com/pay
 
-You will need your password and the card on file.
+You will need the card you wish to pay with and your postal code.
 
-Amazon Customer Service`;
+Canada Post Delivery Services`;
 
 function PasteBox({ shieldId }: { shieldId: Id<"shields"> }) {
   const submit = useMutation(api.cases.submitPasted);
   const [open, setOpen] = useState(false);
-  const [subject, setSubject] = useState("Your Amazon Prime membership could not be renewed");
+  const [subject, setSubject] = useState(SAMPLE_SUBJECT);
   const [body, setBody] = useState(SAMPLE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
