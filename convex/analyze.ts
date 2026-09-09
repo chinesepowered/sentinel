@@ -14,6 +14,7 @@ import {
   type Reason,
   type Verdict,
   applySafetyRules,
+  cleanExcerpt,
   composeGuardianAlert,
   composeParentReply,
   domainMatches,
@@ -147,8 +148,16 @@ async function verifyOrg(
   }
   if (!claimedOrg) return { officialDomains: [], live: false };
 
-  const site = await search(ctx, `${claimedOrg} official website contact`, 4);
+  // Two searches, run together: who the organisation really is, and whether it
+  // publishes a warning about exactly this kind of email.
+  const [site, fraud] = await Promise.all([
+    search(ctx, `${claimedOrg} official website contact`, 4),
+    search(ctx, `${claimedOrg} fraud alert current scams warning`, 4).catch(() => null),
+  ]);
   if (!site.cached && site.data) await ctx.runMutation(internal.usage.bump, { provider: "firecrawl" });
+  if (fraud && !fraud.cached && fraud.data) {
+    await ctx.runMutation(internal.usage.bump, { provider: "firecrawl" });
+  }
   const hits = site.data ?? [];
   if (hits.length === 0) return { officialDomains: [], live: !site.stale };
 
@@ -188,18 +197,11 @@ async function verifyOrg(
   // when it is hosted on a domain we just verified as theirs.
   let fraudPageUrl: string | undefined;
   let fraudPageExcerpt: string | undefined;
-  try {
-    const fraud = await search(ctx, `${claimedOrg} fraud alert current scams warning`, 4);
-    if (!fraud.cached && fraud.data) {
-      await ctx.runMutation(internal.usage.bump, { provider: "firecrawl" });
-    }
-    const own = (fraud.data ?? []).find((h) => domainMatches(h.url, officialDomains));
-    if (own) {
-      fraudPageUrl = own.url;
-      fraudPageExcerpt = excerpt(own.markdown ?? own.description ?? "", 600);
-    }
-  } catch {
-    // A missing fraud page is normal; it must never fail the case.
+  const own = (fraud?.data ?? []).find((h) => domainMatches(h.url, officialDomains));
+  if (own) {
+    fraudPageUrl = own.url;
+    fraudPageExcerpt =
+      cleanExcerpt(own.markdown ?? "", 400) || excerpt(own.description ?? "", 400) || undefined;
   }
 
   if (officialDomains.length > 0) {
@@ -257,7 +259,7 @@ async function inspectLinks(
         matchesOfficial: false,
         reachable: Boolean(page.data?.markdown),
         title: page.data?.title,
-        excerpt: page.data ? excerpt(page.data.markdown, 500) : undefined,
+        excerpt: page.data ? cleanExcerpt(page.data.markdown, 400) || undefined : undefined,
       });
     } catch {
       // A link that cannot be fetched at all is itself worth knowing.

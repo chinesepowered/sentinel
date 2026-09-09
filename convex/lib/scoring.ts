@@ -246,6 +246,24 @@ export function tidy(s: string | undefined, max: number): string {
   return (stop > 40 ? cut.slice(0, stop + 1) : cut).trim();
 }
 
+/**
+ * Scraped pages arrive as markdown full of navigation. Strip it back to prose
+ * so the evidence panel shows a sentence a worried person can read, not a menu.
+ */
+export function cleanExcerpt(markdown: string, max = 400): string {
+  const text = (markdown ?? "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/[*_>`|]/g, " ")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 60 && /[a-z]/.test(l) && !/^-/.test(l))
+    .join(" ");
+  return tidy(text || markdown, max);
+}
+
 /** Stable cache key for an organisation name. */
 export function orgKeyOf(name: string): string {
   return (name ?? "")
