@@ -8,8 +8,12 @@
  * @module
  */
 
+import type * as analyze from "../analyze.js";
 import type * as auth from "../auth.js";
+import type * as cases from "../cases.js";
 import type * as crawlCache from "../crawlCache.js";
+import type * as crons from "../crons.js";
+import type * as digest from "../digest.js";
 import type * as http from "../http.js";
 import type * as inbound from "../inbound.js";
 import type * as lib_agentmail from "../lib/agentmail.js";
@@ -18,9 +22,13 @@ import type * as lib_firecrawl from "../lib/firecrawl.js";
 import type * as lib_limits from "../lib/limits.js";
 import type * as lib_llm from "../lib/llm.js";
 import type * as lib_mailUtil from "../lib/mailUtil.js";
+import type * as lib_scoring from "../lib/scoring.js";
 import type * as lib_svix from "../lib/svix.js";
 import type * as mail from "../mail.js";
 import type * as mailActions from "../mailActions.js";
+import type * as orgs from "../orgs.js";
+import type * as seed from "../seed.js";
+import type * as shields from "../shields.js";
 import type * as staticHosting from "../staticHosting.js";
 import type * as usage from "../usage.js";
 
@@ -31,8 +39,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  analyze: typeof analyze;
   auth: typeof auth;
+  cases: typeof cases;
   crawlCache: typeof crawlCache;
+  crons: typeof crons;
+  digest: typeof digest;
   http: typeof http;
   inbound: typeof inbound;
   "lib/agentmail": typeof lib_agentmail;
@@ -41,9 +53,13 @@ declare const fullApi: ApiFromModules<{
   "lib/limits": typeof lib_limits;
   "lib/llm": typeof lib_llm;
   "lib/mailUtil": typeof lib_mailUtil;
+  "lib/scoring": typeof lib_scoring;
   "lib/svix": typeof lib_svix;
   mail: typeof mail;
   mailActions: typeof mailActions;
+  orgs: typeof orgs;
+  seed: typeof seed;
+  shields: typeof shields;
   staticHosting: typeof staticHosting;
   usage: typeof usage;
 }>;
