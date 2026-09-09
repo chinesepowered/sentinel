@@ -4,7 +4,7 @@
 - **Event:** Convex All Gas Hackathon
 - **What it does:** An older adult forwards a suspicious email to one address and gets a plain-language verdict back in seconds, verified against the real organisation's website, while the family dashboard lights up.
 - **Live app:** https://grateful-minnow-9.convex.site
-- **Repo:** none
+- **Repo:** https://github.com/chinesepowered/sentinel
 - **Frontend:** Convex static hosting
 - **Convex deployment:** https://grateful-minnow-9.convex.cloud
 - **Components:** @convex-dev/static-hosting, @convex-dev/agent, @convex-dev/rate-limiter
